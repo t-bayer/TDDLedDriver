@@ -12,6 +12,15 @@
 #include <stdint.h>
 
 static uint16_t * ledsAddress;
+static uint16_t ledsImage;
+
+/**
+ * Enumeration for specifing a group of leds
+ */
+enum{
+	ALL_LEDS_ON= ~0, /// Turn on all leds
+	ALL_LEDS_OFF = ~ALL_LEDS_ON /// Turn off all leds
+};
 
 /**
  * @brief Initialize the leds
@@ -22,7 +31,8 @@ static uint16_t * ledsAddress;
  */
 void LedDriver_Create(uint16_t * address){
 	ledsAddress = address;
-	*ledsAddress = 0;
+	ledsImage = ALL_LEDS_OFF;
+	*ledsAddress = ALL_LEDS_OFF;
 }
 
 /**
@@ -40,7 +50,16 @@ void LedDriver_Destroy(void){
  * @param[in] ledNumber The number which needs to be converted
  */
 static uint16_t convertLedNumberToBit(int ledNumber){
-	return 1 << (ledNumber -1);
+	return 1 << (ledNumber-1);
+}
+
+/**
+ * @brief Helper function to update the hardware's memory
+ *
+ * The function is used to copy the mirror variable to the hardware memory block
+ */
+static void updateHardware(void){
+	*ledsAddress = ledsImage;
 }
 
 /**
@@ -51,7 +70,11 @@ static uint16_t convertLedNumberToBit(int ledNumber){
  * @param[in] ledNumber The number which needs to be turned on
  */
 void LedDriver_TurnOn(int ledNumber){
-	*ledsAddress = convertLedNumberToBit(ledNumber);
+	if(ledNumber <=0 || ledNumber >16){
+			return;
+	}
+	ledsImage |= convertLedNumberToBit(ledNumber);
+	updateHardware();
 }
 
 /**
@@ -62,6 +85,21 @@ void LedDriver_TurnOn(int ledNumber){
  * @param[in] ledNumber The number which needs to be turned off
  */
 void LedDriver_TurnOff(int ledNumber){
-	*ledsAddress = 0;
+	if(ledNumber <=0 || ledNumber >16){
+		return;
+	}
+	ledsImage &= ~(convertLedNumberToBit(ledNumber));
+	updateHardware();
 }
+
+/**
+ * @brief The function turns on all leds
+ *
+ * Turning on all led is done by setting all bits within the memory block to high
+ */
+void LedDriver_TurnAllOn(){
+	ledsImage = ALL_LEDS_ON;
+	updateHardware();
+}
+
 
